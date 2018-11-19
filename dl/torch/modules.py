@@ -8,7 +8,7 @@ import torch.nn.functional as F
 Boundary = namedtuple('Boundary', 'lower upper')
 
 
-class StatefulHardtanh(nn.Hardtanh):
+class QClippedLayerWithInputStats(nn.Hardtanh):
     default_boundary = Boundary(-999999999., 999999999.)
 
     @staticmethod
@@ -27,7 +27,7 @@ class StatefulHardtanh(nn.Hardtanh):
 
     def __init__(self, momentum=0.1, enforced_min=None, enforced_max=None, track_running_stats=True,
                  estimation_function=None):
-        super(StatefulHardtanh, self).__init__()
+        super(QClippedLayerWithInputStats, self).__init__()
         self.enforced_min = enforced_min
         self.enforced_max = enforced_max
         self.momentum = momentum
@@ -53,6 +53,12 @@ class StatefulHardtanh(nn.Hardtanh):
         return self._estimated_boundary
 
     def _get_boundary_by_priority(self):
+        """
+        The priority is (from high to low):
+            1. (enforced_min, enforced_max)
+            2. (estimated_boundary.lower, estimated_boundary.upper)
+            3. default_boundary
+        """
         boundary = self.default_boundary
         if self.estimated_boundary is not None:
             boundary = Boundary(self.estimated_boundary.lower, self.estimated_boundary.upper)
@@ -73,9 +79,9 @@ class StatefulHardtanh(nn.Hardtanh):
         return self._hardtanh(input, self.default_boundary)
 
 
-class StatefulClippedReLU(StatefulHardtanh):
+class QClippedReLUWithInputStats(QClippedLayerWithInputStats):
     def __init__(self, momentum=0.1, clip_at=None, track_running_stats=True, estimation_function=None):
-        super(StatefulClippedReLU, self).__init__(momentum=momentum, enforced_min=0, enforced_max=clip_at,
-                                                  track_running_stats=track_running_stats,
-                                                  estimation_function=estimation_function)
-        StatefulClippedReLU.default_boundary = Boundary(0., self.default_boundary.upper)
+        super(QClippedReLUWithInputStats, self).__init__(momentum=momentum, enforced_min=0, enforced_max=clip_at,
+                                                         track_running_stats=track_running_stats,
+                                                         estimation_function=estimation_function)
+        QClippedReLUWithInputStats.default_boundary = Boundary(0., self.default_boundary.upper)

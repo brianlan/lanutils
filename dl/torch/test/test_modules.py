@@ -1,22 +1,21 @@
-import pytest
 import torch
 import numpy as np
 
-from ..modules import StatefulClippedReLU, StatefulHardtanh
+from ..modules import QClippedReLUWithInputStats, QClippedLayerWithInputStats
 
 
-def test_stateful_hardtanh_normal():
+def test_q_clipped_layer_normal():
     input_data = torch.tensor([[-10.1, 1.2], [-0.5, 15.5]], dtype=torch.float32)
-    htanh = StatefulHardtanh()
+    htanh = QClippedLayerWithInputStats()
     np.testing.assert_almost_equal(htanh.train()(input_data).numpy(),
                                    np.array([[-10.1, 1.2], [-0.5, 15.5]]), decimal=6)
     np.testing.assert_almost_equal(htanh.eval()(input_data).numpy(),
                                    np.array([[-10.1, 1.2], [-0.5, 15.5]]), decimal=6)
 
 
-def test_stateful_hardtanh_min_max_val():
+def test_q_clipped_layer_min_max_val():
     input_data = torch.tensor([[-1.1, 1.2], [-0.5, 1.5]], dtype=torch.float32)
-    htanh = StatefulHardtanh(enforced_min=-0.8, enforced_max=1.3)
+    htanh = QClippedLayerWithInputStats(enforced_min=-0.8, enforced_max=1.3)
     np.testing.assert_almost_equal(htanh.train()(input_data).numpy(), np.array([[-1.1, 1.2], [-0.5, 1.5]]))
     np.testing.assert_almost_equal(htanh.eval()(input_data).numpy(), np.array([[-1.1, 1.2], [-0.5, 1.5]]))
     htanh.activate_boundary()
@@ -27,13 +26,13 @@ def test_stateful_hardtanh_min_max_val():
     np.testing.assert_almost_equal(htanh.eval()(input_data).numpy(), np.array([[-1.1, 1.2], [-0.5, 1.5]]))
 
 
-def test_stateful_hardtanh_track_running_mean_std():
+def test_q_clipped_layer_track_running_mean_std():
     momentum = 0.1
     input_data = [torch.tensor([[-1.1, 1.2], [-0.5, 1.5]], dtype=torch.float32),
                   torch.tensor([[0, 0.2, -0.5, 0.5]], dtype=torch.float32),
                   torch.tensor([-2.1, -0.2, 0.0, -1.1], dtype=torch.float32)]
 
-    htanh = StatefulHardtanh(momentum=momentum).train()
+    htanh = QClippedLayerWithInputStats(momentum=momentum).train()
 
     # Round 1
     out = htanh(input_data[0])
@@ -73,12 +72,12 @@ def test_stateful_hardtanh_track_running_mean_std():
     np.testing.assert_almost_equal(htanh(another_data).numpy(), np.array([[1.1, 1.09], [-0.5, 0.2]]))
 
 
-def test_stateful_hardtanh_do_not_track():
+def test_q_clipped_layer_do_not_track():
     input_data = [torch.tensor([[-1.1, 1.2], [-0.5, 1.5]], dtype=torch.float32),
                   torch.tensor([[0, 0.2, -0.5, 0.5]], dtype=torch.float32),
                   torch.tensor([-2.1, 0.2, 0.5, -1.1], dtype=torch.float32)]
 
-    htanh = StatefulHardtanh(track_running_stats=False).train()
+    htanh = QClippedLayerWithInputStats(track_running_stats=False).train()
 
     # Round 1
     out = htanh(input_data[0])
@@ -102,16 +101,16 @@ def test_stateful_hardtanh_do_not_track():
     assert htanh.running_std is None
 
 
-def test_stateful_clipped_relu_normal():
+def test_q_clipped_relu_normal():
     input_data = torch.tensor([[-1.1, 1.2], [-0.5, 1.5]], dtype=torch.float32)
-    relu = StatefulClippedReLU()
+    relu = QClippedReLUWithInputStats()
     np.testing.assert_almost_equal(relu.train()(input_data).numpy(), np.array([[0, 1.2], [0, 1.5]]))
     np.testing.assert_almost_equal(relu.eval()(input_data).numpy(), np.array([[0, 1.2], [0, 1.5]]))
 
 
-def test_stateful_clipped_relu_max_val():
+def test_q_clipped_relu_max_val():
     input_data = torch.tensor([[-1.1, 1.2], [-0.5, 1.5]], dtype=torch.float32)
-    relu = StatefulClippedReLU(clip_at=1.3)
+    relu = QClippedReLUWithInputStats(clip_at=1.3)
     np.testing.assert_almost_equal(relu.train()(input_data).numpy(), np.array([[0, 1.2], [0, 1.5]]))
     np.testing.assert_almost_equal(relu.eval()(input_data).numpy(), np.array([[0, 1.2], [0, 1.5]]))
     relu.activate_boundary()
@@ -122,13 +121,13 @@ def test_stateful_clipped_relu_max_val():
     np.testing.assert_almost_equal(relu.eval()(input_data).numpy(), np.array([[0, 1.2], [0, 1.5]]))
 
 
-def test_stateful_clipped_relu_track_running_mean_std():
+def test_q_clipped_relu_track_running_mean_std():
     momentum = 0.1
     input_data = [torch.tensor([[-1.1, 1.2], [-0.5, 1.5]], dtype=torch.float32),
                   torch.tensor([[0, 0.2, -0.5, 0.5]], dtype=torch.float32),
                   torch.tensor([-2.1, -0.2, 0.0, -1.1], dtype=torch.float32)]
 
-    relu = StatefulClippedReLU(momentum=momentum).train()
+    relu = QClippedReLUWithInputStats(momentum=momentum).train()
 
     # Round 1
     out = relu(input_data[0])
@@ -168,12 +167,12 @@ def test_stateful_clipped_relu_track_running_mean_std():
     np.testing.assert_almost_equal(relu(another_data).numpy(), np.array([[1.1, 1.09], [0, 0.2]]))
 
 
-def test_stateful_clipped_relu_do_not_track():
+def test_q_clipped_relu_do_not_track():
     input_data = [torch.tensor([[-1.1, 1.2], [-0.5, 1.5]], dtype=torch.float32),
                   torch.tensor([[0, 0.2, -0.5, 0.5]], dtype=torch.float32),
                   torch.tensor([-2.1, -0.2, 0.0, -1.1], dtype=torch.float32)]
 
-    relu = StatefulClippedReLU(track_running_stats=False).train()
+    relu = QClippedReLUWithInputStats(track_running_stats=False).train()
 
     # Round 1
     out = relu(input_data[0])
