@@ -1,11 +1,11 @@
-from collections import namedtuple
+import collections
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
-Boundary = namedtuple('Boundary', 'lower upper')
+Boundary = collections.namedtuple('Boundary', 'lower upper')
 
 
 class QClippedLayerWithInputStats(nn.Hardtanh):
@@ -13,7 +13,7 @@ class QClippedLayerWithInputStats(nn.Hardtanh):
 
     @staticmethod
     def _default_estimation_function():
-        return lambda miu, std: (-(abs(miu) + abs(std)), abs(miu) + abs(std))
+        return lambda mu, std: (-(abs(mu) + abs(std)), abs(mu) + abs(std))
 
     def _register_tracking_state_attrs(self):
         if self.track_running_stats:
