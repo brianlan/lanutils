@@ -72,8 +72,8 @@ class QClippedLayerWithInputStats(nn.Hardtanh):
 
     def forward(self, input):
         if self.training and self.track_running_stats:
-            self.running_mean = self.running_mean * (1 - self.momentum) + self.momentum * input.mean()
-            self.running_std = self.running_std * (1 - self.momentum) + self.momentum * input.std()
+            self.running_mean = self.running_mean * (1 - self.momentum) + self.momentum * input.mean().detach()
+            self.running_std = self.running_std * (1 - self.momentum) + self.momentum * input.std().detach()
         if self.boundary_activated:
             return self._hardtanh(input, self._get_boundary_by_priority())
         return self._hardtanh(input, self.default_boundary)
