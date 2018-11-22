@@ -6,39 +6,39 @@ from ..modules import QClippedLayerWithInputStats
 
 
 @pytest.fixture
-def estimation_function():
+def bound_estimate_func():
     return lambda mu, std: (-(abs(mu) + abs(std)), abs(mu) + abs(std))
 
 
-def test_q_clipped_layer_normal(estimation_function):
+def test_q_clipped_layer_normal(bound_estimate_func):
     input_data = torch.tensor([[-10.1, 1.2], [-0.5, 15.5]], dtype=torch.float32)
-    htanh = QClippedLayerWithInputStats(estimation_function=estimation_function)
+    htanh = QClippedLayerWithInputStats(bound_estimate_func=bound_estimate_func)
     np.testing.assert_almost_equal(htanh.train()(input_data).numpy(),
                                    np.array([[-10.1, 1.2], [-0.5, 15.5]]), decimal=6)
     np.testing.assert_almost_equal(htanh.eval()(input_data).numpy(),
                                    np.array([[-10.1, 1.2], [-0.5, 15.5]]), decimal=6)
 
 
-def test_q_clipped_layer_min_max_val(estimation_function):
+def test_q_clipped_layer_min_max_val(bound_estimate_func):
     input_data = torch.tensor([[-1.1, 1.2], [-0.5, 1.5]], dtype=torch.float32)
-    htanh = QClippedLayerWithInputStats(enforced_min=-0.8, enforced_max=1.3, estimation_function=estimation_function)
+    htanh = QClippedLayerWithInputStats(enforced_min=-0.8, enforced_max=1.3, bound_estimate_func=bound_estimate_func)
     np.testing.assert_almost_equal(htanh.train()(input_data).numpy(), np.array([[-1.1, 1.2], [-0.5, 1.5]]))
     np.testing.assert_almost_equal(htanh.eval()(input_data).numpy(), np.array([[-1.1, 1.2], [-0.5, 1.5]]))
-    htanh.activate_boundary()
+    htanh.activate_bound()
     np.testing.assert_almost_equal(htanh.train()(input_data).numpy(), np.array([[-0.8, 1.2], [-0.5, 1.3]]))
     np.testing.assert_almost_equal(htanh.eval()(input_data).numpy(), np.array([[-0.8, 1.2], [-0.5, 1.3]]))
-    htanh.deactivate_boundary()
+    htanh.deactivate_bound()
     np.testing.assert_almost_equal(htanh.train()(input_data).numpy(), np.array([[-1.1, 1.2], [-0.5, 1.5]]))
     np.testing.assert_almost_equal(htanh.eval()(input_data).numpy(), np.array([[-1.1, 1.2], [-0.5, 1.5]]))
 
 
-def test_q_clipped_layer_track_running_mean_std(estimation_function):
+def test_q_clipped_layer_track_running_mean_std(bound_estimate_func):
     momentum = 0.1
     input_data = [torch.tensor([[-1.1, 1.2], [-0.5, 1.5]], dtype=torch.float32),
                   torch.tensor([[0, 0.2, -0.5, 0.5]], dtype=torch.float32),
                   torch.tensor([-2.1, -0.2, 0.0, -1.1], dtype=torch.float32)]
 
-    htanh = QClippedLayerWithInputStats(momentum=momentum, estimation_function=estimation_function).train()
+    htanh = QClippedLayerWithInputStats(momentum=momentum, bound_estimate_func=bound_estimate_func).train()
 
     # Round 1
     out = htanh(input_data[0])
@@ -59,7 +59,7 @@ def test_q_clipped_layer_track_running_mean_std(estimation_function):
     np.testing.assert_almost_equal(htanh.running_std.item(), 0.965882301)
 
     another_data = torch.tensor([[1.1, 1.09], [-0.5, 0.2]], dtype=torch.float32)
-    htanh.eval().activate_boundary()
+    htanh.eval().activate_bound()
     np.testing.assert_almost_equal(htanh(another_data).numpy(),
                                    np.array([[1.024107299, 1.024107299], [-0.5, 0.2]]))
 
@@ -74,16 +74,16 @@ def test_q_clipped_layer_track_running_mean_std(estimation_function):
     htanh.enforced_min = 0
     np.testing.assert_almost_equal(htanh(another_data).numpy(), np.array([[1.0, 1.0], [0, 0.2]]))
 
-    htanh.deactivate_boundary()
+    htanh.deactivate_bound()
     np.testing.assert_almost_equal(htanh(another_data).numpy(), np.array([[1.1, 1.09], [-0.5, 0.2]]))
 
 
-def test_q_clipped_layer_do_not_track(estimation_function):
+def test_q_clipped_layer_do_not_track(bound_estimate_func):
     input_data = [torch.tensor([[-1.1, 1.2], [-0.5, 1.5]], dtype=torch.float32),
                   torch.tensor([[0, 0.2, -0.5, 0.5]], dtype=torch.float32),
                   torch.tensor([-2.1, 0.2, 0.5, -1.1], dtype=torch.float32)]
 
-    htanh = QClippedLayerWithInputStats(track_running_stats=False, estimation_function=estimation_function).train()
+    htanh = QClippedLayerWithInputStats(track_running_stats=False, bound_estimate_func=bound_estimate_func).train()
 
     # Round 1
     out = htanh(input_data[0])
@@ -92,7 +92,7 @@ def test_q_clipped_layer_do_not_track(estimation_function):
     assert htanh.running_std is None
 
     # Round 2
-    htanh.eval().activate_boundary()
+    htanh.eval().activate_bound()
     out = htanh(input_data[1])
     np.testing.assert_almost_equal(out.numpy(), np.array([[0, 0.2, -0.5, 0.5]]))
     assert htanh.running_mean is None
