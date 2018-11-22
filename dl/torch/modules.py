@@ -13,13 +13,13 @@ class QClippedLayerWithInputStats(nn.Hardtanh):
 
     @staticmethod
     def _default_estimation_function():
-        return lambda mu, std: (-(abs(mu) + abs(std)), abs(mu) + abs(std))
+        return lambda mu, std: (-(abs(mu) + 3 * abs(std)), abs(mu) + 3 * abs(std))
 
     def _register_tracking_state_attrs(self):
         if self.track_running_stats:
             self.register_buffer('running_mean', torch.tensor(0.))
-            self.register_buffer('running_std', torch.tensor(0.))
-            self.register_buffer('num_batches_tracked', torch.tensor(0.))
+            self.register_buffer('running_std', torch.tensor(1.))
+            self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
         else:
             self.register_parameter('running_mean', None)
             self.register_parameter('running_std', None)
@@ -72,8 +72,9 @@ class QClippedLayerWithInputStats(nn.Hardtanh):
 
     def forward(self, input):
         if self.training and self.track_running_stats:
-            self.running_mean = self.running_mean * (1 - self.momentum) + self.momentum * input.mean().detach()
-            self.running_std = self.running_std * (1 - self.momentum) + self.momentum * input.std().detach()
+            self.running_mean += self.momentum * (input.mean().detach() - self.running_mean)
+            self.running_std += self.momentum * (input.std().detach() - self.running_std)
+            self.num_batches_tracked += torch.tensor(1, dtype = torch.long)
         if self.boundary_activated:
             return self._hardtanh(input, self._get_boundary_by_priority())
         return self._hardtanh(input, self.default_boundary)
