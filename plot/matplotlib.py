@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def get_lefttop_coord_ax(axes_range=(0, 1, 0, 1)):
@@ -11,3 +12,13 @@ def get_lefttop_coord_ax(axes_range=(0, 1, 0, 1)):
     return ax
 
 
+def get_colors(n_desired_colors, cmap_name="rainbow"):
+    import matplotlib.pyplot as plt
+
+    cmap = plt.cm.get_cmap(cmap_name, n_desired_colors)
+    try:
+        colors = cmap.colors
+    except AttributeError:
+        colors = cmap(np.linspace(0, 1, n_desired_colors))
+    colors = (colors[:, :3] * 255).astype(np.int32)
+    return colors.tolist()

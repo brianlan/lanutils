@@ -36,7 +36,7 @@ class RunLengthEncoder:
             range(st_pos, st_pos + npix) for st_pos, npix in zip(encoded_sequence[::2], encoded_sequence[1::2])
         ]))
         operating_size = target_size if self.direction == "rightward_then_downward" else target_size[::-1]
-        mask = np.zeros(operating_size[::-1], dtype=np.int32)
+        mask = np.zeros(operating_size[::-1], dtype=np.uint8)
         row_idx = (pix_pos - 1) // operating_size[0]  # minus 1 due to encoded_sequence is starting with 1.
         col_idx = (pix_pos - 1) % operating_size[0]
         mask[row_idx, col_idx] = 1
