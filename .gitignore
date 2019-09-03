@@ -100,3 +100,9 @@ ENV/
 # mypy
 .mypy_cache/
 *.pytest_cache*
+<<<<<<< HEAD
+=======
+
+.idea
+
+>>>>>>> 5c9322c3359a281c6cc23517fde8a9e52178f174
