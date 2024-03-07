@@ -1,8 +1,9 @@
-import matplotlib.pyplot as plt
-import numpy as np
+import itertools
 
 
 def get_lefttop_coord_ax(axes_range=(0, 1, 0, 1)):
+    import matplotlib.pyplot as plt
+
     plt.figure()
     ax = plt.gca()
     plt.axis(axes_range)
@@ -12,8 +13,9 @@ def get_lefttop_coord_ax(axes_range=(0, 1, 0, 1)):
     return ax
 
 
-def get_colors(n_desired_colors, cmap_name="rainbow"):
+def get_colors(cmap_name="rainbow", n_desired_colors=5):
     import matplotlib.pyplot as plt
+    import numpy as np
 
     cmap = plt.cm.get_cmap(cmap_name, n_desired_colors)
     try:
@@ -22,3 +24,11 @@ def get_colors(n_desired_colors, cmap_name="rainbow"):
         colors = cmap(np.linspace(0, 1, n_desired_colors))
     colors = (colors[:, :3] * 255).astype(np.int32)
     return colors.tolist()
+
+
+def color_generator(cmap_name="rainbow", n_desired_colors=5, cyclic=True):
+    colors = get_colors(cmap_name=cmap_name, n_desired_colors=n_desired_colors)
+    if cyclic:
+        colors = itertools.cycle(colors)
+    for color in colors:
+        yield color
